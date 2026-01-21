@@ -26,15 +26,15 @@ func tampilMahasiswa(data []Mahasiswa) {
 	}
 }
 
-func cariMahasiswaByNIM(data []Mahasiswa, nim string){
-	for _, m := range data {
+func cariMahasiswaByNIM(data []Mahasiswa, nim string) *Mahasiswa {
+	for i, m := range data {
 		if m.NIM == nim {
-			fmt.Println("Mahasiswa ditemukan:", m,"nama ", m.Nama)
-			return
+			return &data[i] // return pointer
 		}
 	}
-	fmt.Println("Mahasiswa tidak ditemukan")
+	return nil
 }
+
 
 
 func main() {
@@ -44,7 +44,10 @@ func main() {
 		{"Iqbal", "123456783", "Teknik Informatika", 3.75},
 	}
 
-	tampilMahasiswa(dataMahasiswa)
-	fmt.Println("Rata-rata IPK:", hitungrataipk(dataMahasiswa))
-	cariMahasiswaByNIM(dataMahasiswa, "123456789")
+	mhs := cariMahasiswaByNIM(dataMahasiswa, "123456789")
+	if mhs != nil {
+		fmt.Println("Mahasiswa ditemukan:", mhs.Nama, "dengan NIM", mhs.NIM, "jurusan", mhs.Jurusan, "IPK", mhs.IPK)
+	} else {
+		fmt.Println("Mahasiswa tidak ditemukan")
+	}
 }

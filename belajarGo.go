@@ -1,7 +1,7 @@
 package main
 import "fmt"
 
-func main() {
+func main2() {
     var nama string = "Iqbal"
     umur := 20
     fmt.Println("Halo", nama)
