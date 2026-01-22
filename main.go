@@ -1,53 +1,68 @@
 package main
-
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 )
 
 type Mahasiswa struct {
-    Nama string
-    NIM string
-    Jurusan string
-    IPK float64
+	NIM  string  `json:"nim"`
+	Nama string  `json:"nama"`
+	IPK  float64 `json:"ipk"`
 }
 
-func hitungrataipk(data []Mahasiswa) float64 {
-    total := 0.0
-    for _, m := range data {
-        total += m.IPK
-    }
-    return total / float64(len(data))
+const fileName = "mahasiswa.json"
+
+// Load data dari file JSON
+func loadData() []Mahasiswa {
+	file, err := os.ReadFile(fileName)
+	if err != nil {
+		return []Mahasiswa{} // jika file belum ada
+	}
+
+	var data []Mahasiswa
+	json.Unmarshal(file, &data)
+	return data
 }
 
+// Simpan data ke file JSON
+func saveData(data []Mahasiswa) {
+	jsonData, _ := json.MarshalIndent(data, "", "  ")
+	os.WriteFile(fileName, jsonData, 0644)
+}
+
+// Tambah mahasiswa
+func tambahMahasiswa(data []Mahasiswa, m Mahasiswa) []Mahasiswa {
+	data = append(data, m)
+	return data
+}
+
+// Tampilkan data
 func tampilMahasiswa(data []Mahasiswa) {
-	fmt.Println("=== DATA MAHASISWA ===")
+	fmt.Println("\n=== DATA MAHASISWA ===")
 	for i, m := range data {
-		fmt.Printf("%d. %s - %s (IPK: %.2f)\n", i+1, m.NIM, m.Nama, m.IPK)
+		fmt.Printf("%d. %s - %s (IPK %.2f)\n", i+1, m.NIM, m.Nama, m.IPK)
 	}
 }
-
-func cariMahasiswaByNIM(data []Mahasiswa, nim string) *Mahasiswa {
+func DeleteMahasiswaByNim(data []Mahasiswa, nim string) []Mahasiswa {
 	for i, m := range data {
 		if m.NIM == nim {
-			return &data[i] // return pointer
+			data = append(data[:i], data[i+1:]...)
+			fmt.Println("Mahasiswa dengan NIM", nim, "berhasil dihapus")
+			return data
 		}
 	}
-	return nil
+	fmt.Println("Mahasiswa dengan NIM", nim, "tidak ditemukan")
+	return data
 }
 
-
-
 func main() {
-	dataMahasiswa := []Mahasiswa{
-		{"Iqbal", "123456781", "Teknik Informatika", 3.5},
-		{"Iqbal", "123456782", "Teknik Informatika", 3.25},
-		{"Iqbal", "123456783", "Teknik Informatika", 3.75},
-	}
+	data := loadData()
+	data = DeleteMahasiswaByNim(data, "2341720003")
+	saveData(data)
 
-	mhs := cariMahasiswaByNIM(dataMahasiswa, "123456789")
-	if mhs != nil {
-		fmt.Println("Mahasiswa ditemukan:", mhs.Nama, "dengan NIM", mhs.NIM, "jurusan", mhs.Jurusan, "IPK", mhs.IPK)
-	} else {
-		fmt.Println("Mahasiswa tidak ditemukan")
-	}
+	// Tampilkan
+	tampilMahasiswa(data)
+
+	fmt.Println("\nData berhasil disimpan ke mahasiswa.json")
 }
