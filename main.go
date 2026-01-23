@@ -1,8 +1,11 @@
 package main
+
 import (
 	"encoding/json"
-	"fmt"
+	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Mahasiswa struct {
@@ -13,56 +16,80 @@ type Mahasiswa struct {
 
 const fileName = "mahasiswa.json"
 
-// Load data dari file JSON
+// ===== File Handler =====
+
 func loadData() []Mahasiswa {
 	file, err := os.ReadFile(fileName)
 	if err != nil {
-		return []Mahasiswa{} // jika file belum ada
+		return []Mahasiswa{}
 	}
-
 	var data []Mahasiswa
 	json.Unmarshal(file, &data)
 	return data
 }
 
-// Simpan data ke file JSON
 func saveData(data []Mahasiswa) {
 	jsonData, _ := json.MarshalIndent(data, "", "  ")
 	os.WriteFile(fileName, jsonData, 0644)
 }
 
-// Tambah mahasiswa
-func tambahMahasiswa(data []Mahasiswa, m Mahasiswa) []Mahasiswa {
-	data = append(data, m)
-	return data
+// ===== API Handlers =====
+
+func getMahasiswa(c *gin.Context) {
+	data := loadData()
+	c.JSON(http.StatusOK, data)
 }
 
-// Tampilkan data
-func tampilMahasiswa(data []Mahasiswa) {
-	fmt.Println("\n=== DATA MAHASISWA ===")
-	for i, m := range data {
-		fmt.Printf("%d. %s - %s (IPK %.2f)\n", i+1, m.NIM, m.Nama, m.IPK)
+func getMahasiswaByNIM(c *gin.Context) {
+	nim := c.Param("nim")
+	data := loadData()
+
+	for _, m := range data {
+		if m.NIM == nim {
+			c.JSON(http.StatusOK, m)
+			return
+		}
 	}
+	c.JSON(http.StatusNotFound, gin.H{"message": "Mahasiswa tidak ditemukan"})
 }
-func DeleteMahasiswaByNim(data []Mahasiswa, nim string) []Mahasiswa {
+
+func postMahasiswa(c *gin.Context) {
+	var mhs Mahasiswa
+	if err := c.ShouldBindJSON(&mhs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Format JSON salah"})
+		return
+	}
+
+	data := loadData()
+	data = append(data, mhs)
+	saveData(data)
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Mahasiswa ditambahkan"})
+}
+
+func deleteMahasiswa(c *gin.Context) {
+	nim := c.Param("nim")
+	data := loadData()
+
 	for i, m := range data {
 		if m.NIM == nim {
 			data = append(data[:i], data[i+1:]...)
-			fmt.Println("Mahasiswa dengan NIM", nim, "berhasil dihapus")
-			return data
+			saveData(data)
+			c.JSON(http.StatusOK, gin.H{"message": "Mahasiswa dihapus"})
+			return
 		}
 	}
-	fmt.Println("Mahasiswa dengan NIM", nim, "tidak ditemukan")
-	return data
+
+	c.JSON(http.StatusNotFound, gin.H{"message": "Mahasiswa tidak ditemukan"})
 }
 
 func main() {
-	data := loadData()
-	data = DeleteMahasiswaByNim(data, "2341720003")
-	saveData(data)
+	router := gin.Default()
 
-	// Tampilkan
-	tampilMahasiswa(data)
+	router.GET("/mahasiswa", getMahasiswa)
+	router.GET("/mahasiswa/:nim", getMahasiswaByNIM)
+	router.POST("/mahasiswa", postMahasiswa)
+	router.DELETE("/mahasiswa/:nim", deleteMahasiswa)
 
-	fmt.Println("\nData berhasil disimpan ke mahasiswa.json")
+	router.Run(":9090")
 }
